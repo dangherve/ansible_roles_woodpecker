@@ -1,0 +1,38 @@
+- name: Get latest Woodpecker release
+  uri:
+    url: https://api.github.com/repos/woodpecker-ci/woodpecker/releases/latest
+    method: GET
+    return_content: yes
+  register: woodpecker_release
+
+- name: Extract version
+  ansible.builtin.set_fact:
+    woodpecker_version: "{{ woodpecker_release.json.tag_name | regex_replace('^v', '') }}"
+
+
+- include_tasks: configurationServer.yml
+  when: ciServer is defined
+
+- include_tasks: server.yml
+  when: ciServer is defined
+  with_items: "{{ woodpecker }}"
+  loop_control:
+    loop_var: instance
+
+- include_tasks: configurationAgent.yml
+  when: ciAgent is defined
+
+- include_tasks:
+    file: agent.yml
+    apply:
+      tags:
+            - agent
+  when: ciAgent is defined
+  with_items: "{{ woodpecker }}"
+  loop_control:
+    loop_var: instance
+  tags:
+    - agent
+
+- include_tasks: configurationCli.yml
+  when: ciCli is defined

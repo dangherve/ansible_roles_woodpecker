@@ -1,0 +1,30 @@
+- name: remove agent file
+  file:
+    path: "{{ woodpecker_config_dir }}agent-{{ instance.name }}.conf"
+    state: absent
+
+- name: Generate conf for {{ instance.name }}
+  template:
+        src: woodpecker-agent.env.j2
+        dest: "{{ woodpecker_config_dir }}{{ instance.name }}-woodpecker-agent.env"
+        mode: 0644
+
+- name: Generate service
+  template:
+        src: woodpecker-agent.service.j2
+        dest: /lib/systemd/system/{{ instance.name }}-woodpecker-agent.service
+        mode: 0644
+  notify:
+    - reload systemctl
+
+- meta: flush_handlers
+
+- name: stop service
+  service:
+    name: "{{ instance.name }}-woodpecker-agent.service"
+    state: stopped
+
+- name: start service
+  service:
+    name: "{{ instance.name }}-woodpecker-agent.service"
+    state: started

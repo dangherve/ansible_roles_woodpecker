@@ -1,0 +1,9 @@
+- name: Download Woodpecker deb packages
+  ansible.builtin.get_url:
+    url: "https://github.com/woodpecker-ci/woodpecker/releases/download/v{{ woodpecker_version }}/woodpecker-cli_{{ woodpecker_version }}_amd64.deb"
+    dest: "/root/woodpecker-cli_{{ woodpecker_version }}_amd64.deb"
+    mode: '0644'
+
+- name: install deb file
+  apt:
+    deb: "/root/woodpecker-cli_{{ woodpecker_version }}_amd64.deb"

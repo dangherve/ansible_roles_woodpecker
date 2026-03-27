@@ -1,0 +1,54 @@
+services:
+    {{ instance.name }}-woodpecker-server:
+        image: woodpeckerci/woodpecker-server:v3
+        user: "0:0" #need root or allow woodpecker user to access certains files
+        restart: unless-stopped
+        stop_grace_period: 10s
+        ports:
+            - "{{ instance.port }}:443"
+            - "{{ instance.rpcPort }}:9000"
+
+        extra_hosts:
+            - host.docker.internal:host-gateway
+        environment:
+            WOODPECKER_OPEN: false
+            WOODPECKER_SERVER_PROTO: https
+            WOODPECKER_HOST: https://{{ instance.name }}.{{ instance.domainName }}
+{% if instance.githubID is defined %}
+            WOODPECKER_GITHUB: true
+            WOODPECKER_GITHUB_CLIENT: {{ instance.githubID }}
+            WOODPECKER_GITHUB_SECRET: {{ instance.githubSecret }}
+{% else %}
+            WOODPECKER_GITLAB: true
+            #WOODPECKER_GITLAB_URL: http://gitlab.mycompany.com
+            WOODPECKER_GITLAB_CLIENT: {{ instance.gitlabId }}
+            WOODPECKER_GITLAB_SECRET: {{ instance.gitlabSecret }}
+{% endif %}
+            #openssl rand -hex 32
+            WOODPECKER_AGENT_SECRET: {{ instance.agentSecret }}
+            WOODPECKER_SERVER_CERT: {{ instance.sslCert }}
+            WOODPECKER_SERVER_KEY: {{ instance.sslKey }}
+{% if instance.adminUser is defined %}
+            WOODPECKER_ADMIN: {{ instance.adminUser }}
+{% endif %}
+{% if instance.db is defined %}
+            WOODPECKER_DATABASE_DRIVER: postgres
+            #?sslmode=disable
+            WOODPECKER_DATABASE_DATASOURCE: postgres://{{ instance.dbUser }}:{{ instance.dbPass }}@{{instance.dbHost }}:5432/{{instance.db }}
+{% endif %}
+{% if instance.pluginsPrivilege is defined %}
+            WOODPECKER_PLUGINS_PRIVILEGED: {{ instance.pluginsPrivilege }}
+{% endif %}
+{% if instance.logFile is defined %}
+            WOODPECKER_LOG_FILE: /var/log/woodpecker/{{ instance.logFile }}
+{% endif %}
+
+        volumes:
+            - {{ instance.sslCert}}:{{ instance.sslCert}}
+            - {{ instance.sslKey}}:{{ instance.sslKey}}
+            - /var/{{ instance.name }}-server:/var/lib/woodpecker/
+{% if instance.logFile is defined %}
+            - /var/log/woodpecker:/var/log/woodpecker
+{% endif %}
+
+

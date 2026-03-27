@@ -1,0 +1,7 @@
+
+- name: reload systemctl
+  command: systemctl daemon-reload
+
+- name: restart postgresql
+  action: service name=postgresql state=restarted
+

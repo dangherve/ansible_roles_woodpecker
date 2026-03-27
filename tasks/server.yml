@@ -1,0 +1,90 @@
+
+- name: Generate docker template {{ instance.name }}
+  template:
+        src: templates/server_docker-compose.yml.j2
+        dest: "{{ woodpecker_config_dir }}{{ instance.name }}.yml"
+        mode: 0644
+
+- name: add db user
+  postgresql_user:
+    name: "{{ instance.dbUser }}"
+    password: "{{ instance.dbPass }}"
+    encrypted: true
+    state: present
+  become: true
+  become_user: postgres
+
+- name: stop service
+  community.docker.docker_compose_v2:
+        project_name: "{{ instance.name }}"
+        project_src: "{{ woodpecker_config_dir }}"
+        files: "{{ instance.name }}.yml"
+        pull: always
+        state: stopped
+  when: ci_reset is defined
+
+- name: remove data
+  file:
+    path: /var/{{ instance.name }}-server
+    state: absent
+  when: ci_reset is defined
+
+
+- name: remove log
+  file:
+    path: /var/log/woodpecker/{{ instance.logFile }}
+    state: absent
+  when: ci_reset is defined
+
+
+- name: delete database
+  postgresql_db:
+    name: "{{ instance.db }}"
+    owner: "{{ instance.dbUser }}"
+    state: absent
+  become: true
+  become_user: postgres
+  when: ci_reset is defined
+
+- name: Create database
+  postgresql_db:
+    name: "{{ instance.db }}"
+    owner: "{{ instance.dbUser }}"
+  become: true
+  become_user: postgres
+
+- name: Create and start services {{ instance.name }}
+  community.docker.docker_compose_v2:
+        project_name: "{{ instance.name }}"
+        project_src: "{{ woodpecker_config_dir }}"
+        files: "{{ instance.name }}.yml"
+        pull: always
+        state: present
+  register: dockerResult
+
+- debug:
+    msg: docker inspect -f '{% raw %}{{.Name}} - {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}{% endraw %}' {{ dockerResult.images[0].ContainerName }} | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+'
+
+- name: get ip docker
+  shell: |
+    docker inspect -f '{% raw %}{{.Name}} - {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}{% endraw %}' {{ dockerResult.images[0].ContainerName }} | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+'
+  when: dockerResult.changed is true
+  register: container_ip_raw
+
+- name: Save IP as fact
+  set_fact:
+    container_ip: "{{ container_ip_raw.stdout }}"
+  when: dockerResult.changed is true
+
+- name: client auth for postgresql
+  lineinfile:
+    dest: /etc/postgresql/17/main/pg_hba.conf
+    backup: no
+    regexp: '^{{ instance.db }}'
+    line: 'host     {{ instance.db }}      {{ instance.dbUser }} {{ container_ip }}/16        scram-sha-256'
+  when: dockerResult.changed is true
+  notify:
+    - restart postgresql
+
+
+
