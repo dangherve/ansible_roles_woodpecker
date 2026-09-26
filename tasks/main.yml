@@ -9,9 +9,9 @@
   ansible.builtin.set_fact:
     woodpecker_version: "{{ woodpecker_release.json.tag_name | regex_replace('^v', '') }}"
 
-
-- include_tasks: configurationServer.yml
-  when: ciServer is defined
+#debian install with deb
+#- include_tasks: configurationServer.yml
+#  when: ciServer is defined
 
 - include_tasks: server.yml
   when: ciServer is defined

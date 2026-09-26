@@ -20,7 +20,9 @@ services:
             WOODPECKER_GITHUB_SECRET: {{ instance.githubSecret }}
 {% else %}
             WOODPECKER_GITLAB: true
-            #WOODPECKER_GITLAB_URL: http://gitlab.mycompany.com
+{% if instance.gitLabServer is defined %}
+            WOODPECKER_GITLAB_URL: {{ instance.gitLabServer }}
+{% endif %}
             WOODPECKER_GITLAB_CLIENT: {{ instance.gitlabId }}
             WOODPECKER_GITLAB_SECRET: {{ instance.gitlabSecret }}
 {% endif %}
