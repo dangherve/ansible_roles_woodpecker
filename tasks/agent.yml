@@ -1,18 +1,40 @@
+
+- debug:
+    msg: "{{ instance }}"
+
+- name: stop service
+  service:
+    name: "{{ instance.clientName }}-woodpecker-agent.service"
+    state: stopped
+#  when: ci_reset is defined
+
+- debug:
+    msg: "{{ woodpecker_config_dir }}agent-{{ instance.clientName }}.conf"
+
+
 - name: remove agent file
   file:
-    path: "{{ woodpecker_config_dir }}agent-{{ instance.name }}.conf"
+    path: "{{ woodpecker_config_dir }}agent-{{ instance.clientName }}.conf"
     state: absent
+  when: ci_reset is defined
 
-- name: Generate conf for {{ instance.name }}
+- name: Generate conf for {{ instance.clientName }}
   template:
         src: woodpecker-agent.env.j2
-        dest: "{{ woodpecker_config_dir }}{{ instance.name }}-woodpecker-agent.env"
+        dest: "{{ woodpecker_config_dir }}{{ instance.clientName }}-woodpecker-agent.env"
         mode: 0644
+  register: service_config
+#  notify: Restart changed services
+
+
+- debug:
+    msg: "{{ service_config }}"
+
 
 - name: Generate service
   template:
         src: woodpecker-agent.service.j2
-        dest: /lib/systemd/system/{{ instance.name }}-woodpecker-agent.service
+        dest: /lib/systemd/system/{{ instance.clientName }}-woodpecker-agent.service
         mode: 0644
   notify:
     - reload systemctl
@@ -23,8 +45,11 @@
   service:
     name: "{{ instance.name }}-woodpecker-agent.service"
     state: stopped
+#  when: ci_reset is defined
 
 - name: start service
   service:
     name: "{{ instance.name }}-woodpecker-agent.service"
     state: started
+#  when: ci_reset is defined
+

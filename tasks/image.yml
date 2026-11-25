@@ -1,0 +1,16 @@
+- name: create directory where {{ image.name }} will be build
+  file:
+    path: "{{ image.path }}"
+    state: directory
+
+- name: copy dockerfile {{ image.name }}
+  copy:
+    src: "{{ image.dockerfile }}"
+    dest: "{{ image.path }}/dockerfile"
+
+- name: docker image
+  community.docker.docker_image_build:
+    name: "{{ image.name }}"
+    path: "{{ image.path }}"
+    rebuild: always
+

@@ -5,3 +5,9 @@
 - name: restart postgresql
   action: service name=postgresql state=restarted
 
+- name: Restart changed services
+  service:
+    name: "{{ item.item.name }}"
+    state: restarted
+  loop: "{{ service_config.results }}"
+  when: item.changed

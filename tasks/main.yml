@@ -22,17 +22,37 @@
 - include_tasks: configurationAgent.yml
   when: ciAgent is defined
 
+
+- debug:
+    msg: "{{ woodpeckerClient }}"
+
 - include_tasks:
     file: agent.yml
     apply:
       tags:
             - agent
   when: ciAgent is defined
-  with_items: "{{ woodpecker }}"
+  with_items: "{{ woodpeckerClient }}"
   loop_control:
     loop_var: instance
+    extended: true
   tags:
     - agent
+
+- name: copy file
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.path }}"
+    mode: "{{ item.mode | default(omit)}}"
+  with_items: "{{ agentFiles }}"
+  when: ciAgent is defined
+
+
+- include_tasks: image.yml
+  with_items: "{{ imageToBuild }}"
+  loop_control:
+    loop_var: image
+  when: ciAgent is defined
 
 - include_tasks: configurationCli.yml
   when: ciCli is defined
