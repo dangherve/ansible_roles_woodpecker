@@ -41,6 +41,11 @@ services:
 {% if instance.pluginsPrivilege is defined %}
             WOODPECKER_PLUGINS_PRIVILEGED: {{ instance.pluginsPrivilege }}
 {% endif %}
+{% if instance.trustedClone is defined %}
+            WOODPECKER_PLUGINS_TRUSTED_CLONE: {{ instance.trustedClone }}
+{% endif %}
+
+
 {% if instance.logFile is defined %}
             WOODPECKER_LOG_FILE: /var/log/woodpecker/{{ instance.logFile }}
 {% endif %}
